@@ -46,6 +46,52 @@ DESKTOP_FILES = [
 THUMB_MAX = 420
 
 
+# ---------- 人工通读剔除清单 ----------
+# 元宝缓存是整个 App 共用的，别的对话的图也在这里。以下编号经逐张目视确认后剔除，
+# 移到「其他对话/」保留存档（不删除），编号不变，方便回查。
+EXCLUDE = {
+    '01_绿幕与白模': [],
+    '02_生成稿_1328x1776': [],
+    '03_大幅': [
+        1, 2, 3, 4, 5, 6, 9, 10, 25, 36,           # 会员页截图 / 聊天截图 / 终端 / 国徽 / 网格界面
+        38, 47, 48, 53, 54, 58, 61, 62, 63, 65, 67, 72,  # 海浪游戏 / 音乐App / 手机游戏 / 钢琴 / 数据表 / 3D头像
+        74, 75, 84, 92, 93, 99, 101, 102, 103, 104, 105, # 聊天截图 / 终端 / 新浪logo / 柱状图 / GAME OVER / 红色logo
+        111,                                         # 蓝色界面
+    ],
+    '04_其他': [
+        1, 2, 3, 28,                                 # CPSN logo / 平面图 / 酷我音乐 / 大脑解剖
+        43, 45, 49, 50, 54, 60, 65, 66, 69,          # 钢琴 / AI字标 / 西北大学校徽 / 游戏截图 / 蓝色logo / 文档
+        73, 76, 77, 78, 82, 83, 87, 88, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102,
+        # 生命之符 / 初音 / 南开校徽 / 暗场景 / 窄条 / 书法 / bilibili / 箭头图标 / 中央纪委 / 游戏 / 3D男孩
+        # / 抽象logo / Haier / GitHub / 蓝色logo / 小编号图 / 2048 / 文字海报 / 地球logo
+    ],
+}
+
+
+
+# ---------- 人工通读剔除清单 ----------
+# 元宝缓存是整个 App 共用的，别的对话的图也在这里。以下编号经逐张目视确认后剔除，
+# 移到「其他对话/」保留存档（不删除），编号不变，方便回查。
+EXCLUDE = {
+    '01_绿幕与白模': [],
+    '02_生成稿_1328x1776': [],
+    '03_大幅': [
+        1, 2, 3, 4, 5, 6, 9, 10, 25, 36,           # 会员页截图 / 聊天截图 / 终端 / 国徽 / 网格界面
+        38, 47, 48, 53, 54, 58, 61, 62, 63, 65, 67, 72,  # 海浪游戏 / 音乐App / 手机游戏 / 钢琴 / 数据表 / 3D头像
+        74, 75, 84, 92, 93, 99, 101, 102, 103, 104, 105, # 聊天截图 / 终端 / 新浪logo / 柱状图 / GAME OVER / 红色logo
+        111,                                         # 蓝色界面
+    ],
+    '04_其他': [
+        1, 2, 3, 28,                                 # CPSN logo / 平面图 / 酷我音乐 / 大脑解剖
+        43, 45, 49, 50, 54, 60, 65, 66, 69,          # 钢琴 / AI字标 / 西北大学校徽 / 游戏截图 / 蓝色logo / 文档
+        73, 76, 77, 78, 82, 83, 87, 88, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102,
+        # 生命之符 / 初音 / 南开校徽 / 暗场景 / 窄条 / 书法 / bilibili / 箭头图标 / 中央纪委 / 游戏 / 3D男孩
+        # / 抽象logo / Haier / GitHub / 蓝色logo / 小编号图 / 2048 / 文字海报 / 地球logo
+    ],
+}
+
+
+
 def sha1(p):
     return hashlib.sha1(open(p, 'rb').read()).hexdigest()
 
@@ -120,7 +166,7 @@ def main():
         d = os.path.join(ROOT, '元宝缓存', name)
         if os.path.isdir(d):
             shutil.rmtree(d)
-    for d in ('桌面散件', '总览'):
+    for d in ('桌面散件', '总览', '其他对话'):
         p = os.path.join(ROOT, d)
         if os.path.isdir(p):
             shutil.rmtree(p)
@@ -133,11 +179,15 @@ def main():
         items.sort(key=lambda r: (-(r.get('green') or 0), -r['size']))
         out = os.path.join(ROOT, '元宝缓存', dirname)
         os.makedirs(out, exist_ok=True)
+        others = os.path.join(ROOT, '其他对话', dirname)
+        os.makedirs(others, exist_ok=True)
+        skip = set(EXCLUDE.get(dirname, []))
         for i, r in enumerate(items, 1):
             src = os.path.join(STAGE, r['file'])
             base = os.path.splitext(r['file'])[0]
             newname = '%03d_%s.%s' % (i, base, r['ext'])
-            dst = os.path.join(out, newname)
+            keep = i not in skip
+            dst = os.path.join(out if keep else others, newname)
             shutil.copy2(src, dst)
             # 缩略图
             try:
@@ -158,6 +208,7 @@ def main():
                 '字节': r['size'], '绿占比': r.get('green'),
                 'sha1': r['sha1'], '来源': '元宝 App 缓存',
                 '完整性': integrity(dst),
+                '归属': '本项目' if keep else '其他对话',
             })
 
     # 桌面散件
@@ -178,21 +229,21 @@ def main():
                 pass
         manifest.append({'组': '桌面散件', '文件': f, '原缓存ID': '', '宽': '', '高': '',
                          '模式': '', '字节': os.path.getsize(p), '绿占比': '',
-                         'sha1': h, '来源': '桌面', '完整性': integrity(p)})
+                         'sha1': h, '来源': '桌面', '完整性': integrity(p), '归属': '本项目'})
 
     # 清单
     os.makedirs(os.path.join(ROOT, '清单'), exist_ok=True)
     json.dump(manifest, open(os.path.join(ROOT, '清单', '图片清单.json'), 'w', encoding='utf-8'),
               ensure_ascii=False, indent=1)
     with open(os.path.join(ROOT, '清单', '图片清单.csv'), 'w', encoding='utf-8-sig', newline='') as f:
-        f.write('组,文件,原缓存ID,宽,高,模式,字节,绿占比,sha1,完整性,来源\n')
+        f.write('组,文件,原缓存ID,宽,高,模式,字节,绿占比,sha1,完整性,来源,归属\n')
         for m in manifest:
             f.write(','.join(str(m.get(k, '')) for k in
-                             ('组', '文件', '原缓存ID', '宽', '高', '模式', '字节', '绿占比', 'sha1', '完整性', '来源')) + '\n')
+                             ('组', '文件', '原缓存ID', '宽', '高', '模式', '字节', '绿占比', 'sha1', '完整性', '来源', '归属')) + '\n')
 
     # 分组总览图
     for dirname, key, note in BUCKETS:
-        items = [m for m in manifest if m['组'] == dirname]
+        items = [m for m in manifest if m['组'] == dirname and m['归属'] == '本项目']
         if not items:
             continue
         cols = 8
@@ -224,12 +275,15 @@ def main():
     # 画廊
     build_gallery(manifest)
 
-    total = sum(m['字节'] for m in manifest)
-    print('\n合计 %d 个文件 / %.1f MB' % (len(manifest), total / 1048576))
+    mine = [m for m in manifest if m['归属'] == '本项目']
+    other = [m for m in manifest if m['归属'] != '本项目']
+    print('\n本项目 %d 个 / %.1f MB   其他对话 %d 个 / %.1f MB   合计 %.1f MB'
+          % (len(mine), sum(m['字节'] for m in mine) / 1048576,
+             len(other), sum(m['字节'] for m in other) / 1048576,
+             sum(m['字节'] for m in manifest) / 1048576))
     for dirname, _, _ in BUCKETS:
-        n = [m for m in manifest if m['组'] == dirname]
-        print('  %-22s %3d' % (dirname, len(n)))
-    print('  %-22s %3d' % ('桌面散件', len([m for m in manifest if m['组'] == '桌面散件'])))
+        print('  %-22s %3d' % (dirname, len([m for m in mine if m['组'] == dirname])))
+    print('  %-22s %3d' % ('桌面散件', len([m for m in mine if m['组'] == '桌面散件'])))
 
 
 def build_gallery(manifest):
@@ -266,7 +320,7 @@ h2{font-size:15px;font-weight:600;color:#8fd4ff;margin-bottom:3px}
 footer{padding:26px;color:#6b7482;font-size:12px;border-top:1px solid #23272f}
 </style></head><body>
 <header><h1>哈士喵素材档案 · 元宝全量</h1>
-<div class="sub">从元宝 App 本地缓存恢复 <b>''' + str(len([m for m in manifest if m['来源'] == '元宝 App 缓存'])) + '''</b> 张图片，加上桌面散件 <b>''' + str(len([m for m in manifest if m['来源'] == '桌面'])) + '''</b> 个。点图看原图。</div></header>
+<div class="sub">从元宝 App 本地缓存本项目 <b>''' + str(len([m for m in manifest if m['归属'] == '本项目'])) + '''</b> 张，点图看原图。另有 <b>''' + str(len([m for m in manifest if m['归属'] != '本项目'])) + '''</b> 张混进来的其他对话图片，已挪到页尾单独存档。</div></header>
 <nav>''']
     for dirname, _ in groups:
         n = len([m for m in manifest if m['组'] == dirname])
@@ -274,7 +328,7 @@ footer{padding:26px;color:#6b7482;font-size:12px;border-top:1px solid #23272f}
             parts.append('<a href="#%s">%s（%d）</a>' % (dirname, dirname, n))
     parts.append('</nav><main>')
     for dirname, note in groups:
-        items = [m for m in manifest if m['组'] == dirname]
+        items = [m for m in manifest if m['组'] == dirname and m['归属'] == '本项目']
         if not items:
             continue
         parts.append('<section id="%s"><h2>%s</h2><div class="hint">%s</div><div class="grid">'
@@ -291,6 +345,34 @@ footer{padding:26px;color:#6b7482;font-size:12px;border-top:1px solid #23272f}
                          '<div class="meta">%s %s %s</div></a></div>'
                          % (rel, thumb, m['文件'], m['文件'][:14], dims, kb))
         parts.append('</div></section>')
+    oth = [m for m in manifest if m['归属'] != '本项目']
+    if oth:
+        parts.append('<section id="其他对话"><h2>其他对话（已排除）</h2>'
+                     '<div class="hint">同一个元宝账号下别的对话的图片，混在缓存里被一起捞出来的。'
+                     '不算本项目素材，但保留存档不删。共 %d 张。</div>'
+                     '<details><summary style="cursor:pointer;color:#8b95a5;font-size:12.5px;margin-bottom:10px">展开</summary>'
+                     '<div class="grid">' % len(oth))
+        for m in oth:
+            rel = '其他对话/' + m['组'] + '/' + m['文件']
+            thumb = '总览/thumb/' + os.path.splitext(m['文件'])[0] + '.jpg'
+            parts.append('<div class="card"><a href="%s" target="_blank"><img loading="lazy" src="%s" alt="%s">'
+                         '<div class="meta">%s %s</div></a></div>'
+                         % (rel, thumb, m['文件'], m['文件'][:14], '%.0fKB' % (m['字节'] / 1024)))
+        parts.append('</div></details></section>')
+    oth = [m for m in manifest if m['归属'] != '本项目']
+    if oth:
+        parts.append('<section id="其他对话"><h2>其他对话（已排除）</h2>'
+                     '<div class="hint">同一个元宝账号下别的对话的图片，混在缓存里被一起捞出来的。'
+                     '不算本项目素材，但保留存档不删。共 %d 张。</div>'
+                     '<details><summary style="cursor:pointer;color:#8b95a5;font-size:12.5px;margin-bottom:10px">展开</summary>'
+                     '<div class="grid">' % len(oth))
+        for m in oth:
+            rel = '其他对话/' + m['组'] + '/' + m['文件']
+            thumb = '总览/thumb/' + os.path.splitext(m['文件'])[0] + '.jpg'
+            parts.append('<div class="card"><a href="%s" target="_blank"><img loading="lazy" src="%s" alt="%s">'
+                         '<div class="meta">%s %s</div></a></div>'
+                         % (rel, thumb, m['文件'], m['文件'][:14], '%.0fKB' % (m['字节'] / 1024)))
+        parts.append('</div></details></section>')
     parts.append('''</main>
 <footer>缩略图在本页，点开是原图。完整字段见 <a href="清单/图片清单.csv" style="color:#5cc8ff">清单/图片清单.csv</a>。
 <br>来源：元宝 App（WebView2 缓存）2026-11-07 导出。对话正文未缓存，无法恢复。</footer>
